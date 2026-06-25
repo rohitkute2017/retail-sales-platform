@@ -78,6 +78,14 @@ Start with `01_load_and_clean.ipynb`. Each notebook reads from `data/processed/`
 
 ---
 
+## Database Setup
+This project uses MySQL. After installing dependencies:
+1. Create a database called `retail_sales` in MySQL Workbench
+2. Create a `.env` file in the project root with:
+```
+   MYSQL_PASSWORD=your_mysql_root_password
+```
+
 ## Notebooks
 
 ### `01_load_and_clean.ipynb`

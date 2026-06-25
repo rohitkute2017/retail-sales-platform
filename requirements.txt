@@ -10,3 +10,5 @@ jupyter>=1.0
 notebook>=6.5
 matplotlib>=3.50
 seaborn>=0.12
+python-dotenv>=0.19
+pymysql>=1.0
