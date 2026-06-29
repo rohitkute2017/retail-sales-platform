@@ -99,6 +99,21 @@ This project uses MySQL. After installing dependencies:
 
 ---
 
+## Architecture
+
+This project follows the **Medallion Architecture** pattern:
+
+- **Bronze** — Raw data loaded as-is into MySQL (`superstore` table)
+- **Silver** — Cleaned view with zero-sales rows removed (`silver_superstore`)
+- **Gold** — Star schema optimised for reporting:
+  - `gold_fact_orders` — 51,289 order line transactions
+  - `gold_dim_date` — Date attributes
+  - `gold_dim_product` — 10,292 unique products
+  - `gold_dim_customer` — 4,873 unique customers
+  - `gold_dim_geography` — 3,635 unique locations
+
+---
+
 ## Tech Stack
 
 | Layer | Tool |
@@ -108,6 +123,7 @@ This project uses MySQL. After installing dependencies:
 | Dashboard | Microsoft Power BI Desktop |
 
 ---
+
 
 ## Author
 
