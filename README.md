@@ -104,13 +104,26 @@ This project uses MySQL. After installing dependencies:
 This project follows the **Medallion Architecture** pattern:
 
 - **Bronze** — Raw data loaded as-is into MySQL (`superstore` table)
-- **Silver** — Cleaned view with zero-sales rows removed (`silver_superstore`)
+- **Silver** — Cleaned view with business logic columns (`silver_superstore`):
+  - Zero-sales rows removed
+  - `profit_status` — Profit / Loss flag
+  - `ship_performance` — Fast / Standard / Slow based on days_to_ship
+  - `discount_tier` — No / Low / Medium / High based on discount %
 - **Gold** — Star schema optimised for reporting:
   - `gold_fact_orders` — 51,289 order line transactions
-  - `gold_dim_date` — Date attributes
+  - `gold_dim_date` — Continuous calendar table (1,461 days, 2011–2014)
   - `gold_dim_product` — 10,292 unique products
   - `gold_dim_customer` — 4,873 unique customers
   - `gold_dim_geography` — 3,635 unique locations
+
+---
+
+## Power BI Dashboard
+
+- Connected directly to MySQL Gold layer (star schema)
+- Data model: 1 fact table, 4 dimension tables, properly related
+- `dim_date` marked as official Date Table for time intelligence
+- Dashboard build in progress — DAX measures and report pages
 
 ---
 
