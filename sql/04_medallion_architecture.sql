@@ -337,5 +337,166 @@ Alter Table gold_fact_orders
 Add column order_key int auto_increment Primary key First;
 
 
+-- Checking Tables
+Show Tables In retail_sales; 
 
+-- Cleanup: removing leftover dim_product table (superseded by gold_dim_product)
+DROP TABLE dim_product;
+
+-- Rebuilding gold_dim_date as a continuous calendar table (required for Power BI Date Table)
+DROP TABLE gold_dim_date;
+
+CREATE TABLE gold_dim_date AS
+WITH RECURSIVE date_range AS (
+    SELECT MIN(order_date) AS order_date FROM silver_superstore
+    UNION ALL
+    SELECT DATE_ADD(order_date, INTERVAL 1 DAY)
+    FROM date_range
+    WHERE order_date < (SELECT MAX(order_date) FROM silver_superstore)
+)
+SELECT 
+    order_date,
+    YEAR(order_date) as year,
+    MONTH(order_date) as order_month,
+    QUARTER(order_date) as order_quarter,
+    WEEK(order_date) as weeknum
+FROM date_range;
+
+ALTER TABLE gold_dim_date
+ADD COLUMN date_id INT AUTO_INCREMENT PRIMARY KEY FIRST;
+
+SELECT COUNT(*) FROM gold_dim_date;
+
+-- Increase recursion limit to handle 4-year date range
+SET SESSION cte_max_recursion_depth = 2000;
+
+-- Rebuilding gold_dim_date as a continuous calendar table
+CREATE TABLE gold_dim_date AS
+WITH RECURSIVE date_range AS (
+    SELECT MIN(order_date) AS order_date FROM silver_superstore
+    UNION ALL
+    SELECT DATE_ADD(order_date, INTERVAL 1 DAY)
+    FROM date_range
+    WHERE order_date < (SELECT MAX(order_date) FROM silver_superstore)
+)
+SELECT 
+    order_date,
+    YEAR(order_date) as year,
+    MONTH(order_date) as order_month,
+    QUARTER(order_date) as order_quarter,
+    WEEK(order_date) as weeknum
+FROM date_range;
+
+ALTER TABLE gold_dim_date
+ADD COLUMN date_id INT AUTO_INCREMENT PRIMARY KEY FIRST;
+
+SELECT COUNT(*) FROM gold_dim_date;
+
+-- Rebuilding gold_fact_orders to re-link with new continuous gold_dim_date
+DROP TABLE gold_fact_orders;
+
+CREATE TABLE gold_fact_orders AS
+SELECT 
+    ss.order_id,
+    gdd.date_id as date_key,
+    gdp.product_key,
+    gdc.customer_key,
+    gdg.geography_key,
+    ss.sales,
+    ss.profit,
+    ss.quantity,
+    ss.discount,
+    ss.shipping_cost,
+    ss.days_to_ship,
+    ss.order_priority,
+    ss.ship_mode,
+    ss.ship_performance,
+    ss.discount_tier,
+    ss.profit_status
+FROM silver_superstore ss
+LEFT JOIN gold_dim_date gdd ON ss.order_date = gdd.order_date
+LEFT JOIN gold_dim_product gdp ON ss.product_id = gdp.product_id
+LEFT JOIN gold_dim_customer gdc ON ss.customer_id = gdc.customer_id
+LEFT JOIN gold_dim_geography gdg ON ss.city = gdg.city;
+
+ALTER TABLE gold_fact_orders
+ADD COLUMN order_key INT AUTO_INCREMENT PRIMARY KEY FIRST;
+
+SELECT COUNT(*) FROM gold_fact_orders;
+
+-- Rebuilding gold_dim_date as a continuous calendar table (required for Power BI Date Table)
+DROP TABLE gold_dim_date;
+
+CREATE TABLE gold_dim_date AS
+WITH RECURSIVE date_range AS (
+    SELECT MIN(order_date) AS order_date FROM silver_superstore
+    UNION ALL
+    SELECT DATE_ADD(order_date, INTERVAL 1 DAY)
+    FROM date_range
+    WHERE order_date < (SELECT MAX(order_date) FROM silver_superstore)
+)
+SELECT 
+    order_date,
+    YEAR(order_date) as year,
+    MONTH(order_date) as order_month,
+    QUARTER(order_date) as order_quarter,
+    WEEK(order_date) as weeknum
+FROM date_range;
+
+-- Increase recursion limit to handle 4-year date range
+SET SESSION cte_max_recursion_depth = 2000;
+
+-- Rebuilding gold_dim_date as a continuous calendar table
+CREATE TABLE gold_dim_date AS
+WITH RECURSIVE date_range AS (
+    SELECT MIN(order_date) AS order_date FROM silver_superstore
+    UNION ALL
+    SELECT DATE_ADD(order_date, INTERVAL 1 DAY)
+    FROM date_range
+    WHERE order_date < (SELECT MAX(order_date) FROM silver_superstore)
+)
+SELECT 
+    order_date,
+    YEAR(order_date) as year,
+    MONTH(order_date) as order_month,
+    QUARTER(order_date) as order_quarter,
+    WEEK(order_date) as weeknum
+FROM date_range;
+
+ALTER TABLE gold_dim_date
+ADD COLUMN date_id INT AUTO_INCREMENT PRIMARY KEY FIRST;
+
+SELECT COUNT(*) FROM gold_dim_date;
+
+-- Rebuilding gold_fact_orders to re-link with new continuous gold_dim_date
+DROP TABLE gold_fact_orders;
+
+CREATE TABLE gold_fact_orders AS
+SELECT 
+    ss.order_id,
+    gdd.date_id as date_key,
+    gdp.product_key,
+    gdc.customer_key,
+    gdg.geography_key,
+    ss.sales,
+    ss.profit,
+    ss.quantity,
+    ss.discount,
+    ss.shipping_cost,
+    ss.days_to_ship,
+    ss.order_priority,
+    ss.ship_mode,
+    ss.ship_performance,
+    ss.discount_tier,
+    ss.profit_status
+FROM silver_superstore ss
+LEFT JOIN gold_dim_date gdd ON ss.order_date = gdd.order_date
+LEFT JOIN gold_dim_product gdp ON ss.product_id = gdp.product_id
+LEFT JOIN gold_dim_customer gdc ON ss.customer_id = gdc.customer_id
+LEFT JOIN gold_dim_geography gdg ON ss.city = gdg.city;
+
+ALTER TABLE gold_fact_orders
+ADD COLUMN order_key INT AUTO_INCREMENT PRIMARY KEY FIRST;
+
+SELECT COUNT(*) FROM gold_fact_orders;
 	
