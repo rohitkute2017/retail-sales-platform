@@ -120,10 +120,30 @@ This project follows the **Medallion Architecture** pattern:
 
 ## Power BI Dashboard
 
-- Connected directly to MySQL Gold layer (star schema)
-- Data model: 1 fact table, 4 dimension tables, properly related
-- `dim_date` marked as official Date Table for time intelligence
-- Dashboard build in progress — DAX measures and report pages
+**File:** `powerbi/retail_dashboard.pbix`
+
+**Data model:** Star schema connected directly to MySQL Gold layer — 1 fact table, 4 dimension tables, all one-to-many relationships. `dim_date` marked as official Date Table for time intelligence.
+
+**DAX Measures (12 total):**
+Total Sales, Total Profit, Total Orders, Total Quantity, Profit Margin %, Avg Order Value, Sales LY, Sales vs LY %, YTD Sales, YTD Profit, Running Total Sales, Loss Orders
+
+**Report Pages:**
+- **Executive Summary** — KPI cards, monthly sales vs prior year trend, sales by region, sales by segment, year slicer
+- **Product Analysis** — Top 10 products, category/sub-category matrix with conditional formatting, sales vs profit scatter chart, bookmark toggles
+- **Regional Analysis** — Profit by region, regional table, global sales map, drill-through from other pages
+
+**Row-Level Security:** 4 roles (Central Manager, North Manager, South Manager, APAC Manager) filtering on `dim_geography[region]`
+
+## Dashboard Preview
+
+### Executive Summary
+![Executive Summary](screenshots/executive_summary.png)
+
+### Product Analysis
+![Product Analysis](screenshots/product_analysis.png)
+
+### Regional Analysis
+![Regional Analysis](screenshots/regional_analysis.png)
 
 ---
 
