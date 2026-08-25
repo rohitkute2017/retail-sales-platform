@@ -1,95 +1,81 @@
-Use retail_sales;
+-- =====================================================
+-- Business Analysis Queries — Retail Sales Intelligence Platform
+-- =====================================================
 
-Select * From superstore;
+USE retail_sales;
 
--- 1. Total Sales, Profit and profit Margin by Year
-
-Select 
-	year,
-    Round(Sum(sales),2) as total_sales,
-    Round(Sum(profit),2) as total_profit,
-    round(sum(profit)/sum(sales) * 100,2) as profit_margin_pct
-    
-from superstore
-group by year
-order by year ASC;
-
-
--- 2. Top 10 Most Profitable Products
-
-Select 
-	product_name,
-    Category,
-    Round(sum(sales),2) as total_sales,
-    Round(sum(profit),2) as total_profit,
-    Round(sum(profit)/sum(sales)*100,2) as profit_margin_pct
-    
-From superstore
-group by product_name, category
-order by total_profit Desc
-Limit 10;
+-- Query 1: Total Sales, Profit, and Profit Margin by Year
+SELECT 
+    year,
+    ROUND(SUM(sales), 2) AS total_sales,
+    ROUND(SUM(profit), 2) AS total_profit,
+    ROUND(SUM(profit) / SUM(sales) * 100, 2) AS profit_margin_pct
+FROM superstore
+GROUP BY year
+ORDER BY year ASC;
 
 
--- 3. Loss Making Products
-
-Select
-	product_name,
+-- Query 2: Top 10 Most Profitable Products
+SELECT 
+    product_name,
     category,
-    Round(sum(sales),2) as total_sales,
-    Round(sum(profit),2) as total_profit,
-    Round(sum(profit)/sum(sales)*100,2) as profit_margin_pct
-    
-From superstore
-group by product_name, category
-having total_profit < 0 
-order by total_profit Asc;
+    ROUND(SUM(sales), 2) AS total_sales,
+    ROUND(SUM(profit), 2) AS total_profit,
+    ROUND(SUM(profit) / SUM(sales) * 100, 2) AS profit_margin_pct
+FROM superstore
+GROUP BY product_name, category
+ORDER BY total_profit DESC
+LIMIT 10;
 
 
--- 4. Sales and Profit by Region and Segment
+-- Query 3: Loss-Making Products
+SELECT
+    product_name,
+    category,
+    ROUND(SUM(sales), 2) AS total_sales,
+    ROUND(SUM(profit), 2) AS total_profit,
+    ROUND(SUM(profit) / SUM(sales) * 100, 2) AS profit_margin_pct
+FROM superstore
+GROUP BY product_name, category
+HAVING total_profit < 0
+ORDER BY total_profit ASC;
 
-Select 
-	region,
+
+-- Query 4: Sales and Profit by Region and Segment
+SELECT 
+    region,
     segment,
-    Round(sum(sales),2) as total_sales,
-    Round(sum(profit),2) as total_profit,
-    Round(sum(profit)/sum(sales)*100,2) as profit_margin_pct
-    
-From superstore
-group by region, segment
-order by total_profit DESC;
+    ROUND(SUM(sales), 2) AS total_sales,
+    ROUND(SUM(profit), 2) AS total_profit,
+    ROUND(SUM(profit) / SUM(sales) * 100, 2) AS profit_margin_pct
+FROM superstore
+GROUP BY region, segment
+ORDER BY total_profit DESC;
 
--- 5. Discount Impact On Profit
 
- Select 
-	    (case 
-        when discount = 0 then "No Discount"
-        when discount > 0 and discount <= 0.10 then "1-10%"
-        when discount > 0.10 and discount <= 0.30 then "11-30%"
-        when discount > 0.30 and discount <= 0.50 then "31-50%"
-        when discount > 0.50 then  ">50%"
-        end
-        ) as discount_band,
-        
-        Round(sum(profit),2) as total_profit,
-        Round(sum(profit)/sum(sales)*100,2) as average_profit_margin
-        
-	From superstore
-    group by discount_band
-    order by total_profit Desc;
-        
-        
--- 6. Monthly Sales Trend
+-- Query 5: Discount Impact on Profit
+-- Note: bands match 02_eda.ipynb's discount_band definition (0-10%, 10-30%, 30-50%, >50%)
+SELECT 
+    CASE 
+        WHEN discount = 0 THEN 'No Discount'
+        WHEN discount > 0 AND discount <= 0.10 THEN '0-10%'
+        WHEN discount > 0.10 AND discount <= 0.30 THEN '10-30%'
+        WHEN discount > 0.30 AND discount <= 0.50 THEN '30-50%'
+        ELSE '>50%'
+    END AS discount_band,
+    ROUND(SUM(profit), 2) AS total_profit,
+    ROUND(SUM(profit) / SUM(sales) * 100, 2) AS average_profit_margin
+FROM superstore
+GROUP BY discount_band
+ORDER BY total_profit DESC;
 
-Select
-	year,
+
+-- Query 6: Monthly Sales Trend
+SELECT
+    year,
     order_month,
-    Round(sum(sales),2) as total_sales,
-    Round(sum(profit),2) as total_profit
-    
-From superstore
-group by year, order_month
-Order by year Asc, order_month Asc;
-        
-    
-    
-
+    ROUND(SUM(sales), 2) AS total_sales,
+    ROUND(SUM(profit), 2) AS total_profit
+FROM superstore
+GROUP BY year, order_month
+ORDER BY year ASC, order_month ASC;
