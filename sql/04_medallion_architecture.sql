@@ -499,4 +499,5 @@ ALTER TABLE gold_fact_orders
 ADD COLUMN order_key INT AUTO_INCREMENT PRIMARY KEY FIRST;
 
 SELECT COUNT(*) FROM gold_fact_orders;
+
 	
