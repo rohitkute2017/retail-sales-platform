@@ -17,11 +17,11 @@ This project simulates a real-world retail analytics workflow:
 
 ## Dataset
 
-**Source:** [Global Superstore Dataset — Kaggle](https://www.kaggle.com/datasets/apoorvaappz/global-super-store-dataset)  
-**Rows:** 51,290 orders  
+**Source:** [Global Superstore Dataset — Kaggle](https://www.kaggle.com/datasets/apoorvaappz/global-super-store-dataset)
+**Rows:** 51,290 orders
 **Coverage:** 2011–2014, global markets across 7 regions
 
-> The raw CSV is not committed to this repository (see `.gitignore`).  
+> The raw CSV is not committed to this repository (see `.gitignore`).
 > Download `superstore.csv` from Kaggle and place it at `data/raw/superstore.csv` before running the notebooks.
 
 ---
@@ -37,10 +37,16 @@ retail-sales-platform/
 │
 ├── notebooks/
 │   ├── 01_load_and_clean.ipynb     # Load raw CSV, clean, feature engineer, export
-│   ├── 02_eda.ipynb                # Exploratory data analysis (coming soon)
-│   └── 03_sql_analysis.ipynb       # SQL business queries via MySQL (coming soon)
+│   └── 02_eda.ipynb                # Exploratory data analysis — 6 business questions
 │
-├── dashboard/                # Power BI .pbix file (coming soon)
+├── sql/
+│   ├── 03_business_queries.sql       # 6 standalone business queries
+│   └── 04_medallion_architecture.sql # Silver view + Gold star schema
+│
+├── powerbi/
+│   └── retail_dashboard.pbix   # Power BI dashboard
+│
+├── screenshots/               # Dashboard page exports
 │
 ├── .gitignore
 ├── requirements.txt
@@ -74,7 +80,7 @@ data/raw/superstore.csv
 jupyter notebook notebooks/
 ```
 
-Start with `01_load_and_clean.ipynb`. Each notebook reads from `data/processed/` and writes its output there for the next stage.
+Start with `01_load_and_clean.ipynb`, then `02_eda.ipynb`. Each notebook reads from `data/processed/` and writes its output there for the next stage.
 
 ---
 
@@ -83,38 +89,51 @@ This project uses MySQL. After installing dependencies:
 1. Create a database called `retail_sales` in MySQL Workbench
 2. Create a `.env` file in the project root with:
 ```
-   MYSQL_PASSWORD=your_mysql_root_password
+MYSQL_PASSWORD=your_mysql_root_password
 ```
+3. Run `sql/04_medallion_architecture.sql` to build the Silver view and Gold star schema on top of the Bronze table loaded by the notebook.
+
+---
 
 ## Notebooks
 
 ### `01_load_and_clean.ipynb`
 - Loads raw CSV with `latin-1` encoding
-- Drops zero-value columns (garbled Chinese record-count column)
+- Identifies and drops a garbled, constant-value column (Chinese "record count" field, corrupted by encoding — confirmed constant at 1 for every row before dropping)
 - Renames all columns to `snake_case`
 - Parses `order_date` and `ship_date` to `datetime64`
-- Engineers: `days_to_ship`, `order_month`, `order_quarter`, `profit_margin_pct`
-- Guards against division-by-zero in margin calculation
-- Exports `data/processed/cleaned_superstore.csv`
+- Engineers: `days_to_ship`, `order_month`, `order_quarter`, `profit_margin_pct` (with a divide-by-zero guard)
+- Exports `data/processed/cleaned_superstore.csv`, and loads the cleaned data into MySQL as the Bronze table
+
+### `02_eda.ipynb`
+Answers 6 business questions through grouped analysis, each with a written finding:
+1. Yearly sales and profit trend
+2. Category and sub-category performance — surfaced that Tables is the only loss-making sub-category (-24.2% margin), dragging down Furniture's overall margin to just 0.87% despite being the second-highest revenue category
+3. Regional performance — Africa, EMEA, and Southeast Asia are loss-making regions
+4. Customer segment analysis — no segment is loss-making; the profitability challenge sits at the sub-category level, not the segment level
+5. Discount impact on profit — discounts beyond 30% are consistently loss-making
+6. Shipping analysis — cost/speed tradeoff across shipping modes
 
 ---
 
 ## Architecture
 
-This project follows the **Medallion Architecture** pattern:
+This project follows the **Medallion Architecture** pattern (`sql/04_medallion_architecture.sql`):
 
-- **Bronze** — Raw data loaded as-is into MySQL (`superstore` table)
+- **Bronze** — Raw data loaded as-is into MySQL (`superstore` table) via pandas in the Python notebook
 - **Silver** — Cleaned view with business logic columns (`silver_superstore`):
-  - Zero-sales rows removed
+  - Zero/negative-sales rows removed (accounts for the 51,290 → 51,289 row difference vs. the raw dataset)
   - `profit_status` — Profit / Loss flag
   - `ship_performance` — Fast / Standard / Slow based on days_to_ship
   - `discount_tier` — No / Low / Medium / High based on discount %
 - **Gold** — Star schema optimised for reporting:
   - `gold_fact_orders` — 51,289 order line transactions
-  - `gold_dim_date` — Continuous calendar table (1,461 days, 2011–2014)
-  - `gold_dim_product` — 10,292 unique products
+  - `gold_dim_date` — Continuous calendar table (1,461 days, 2011–2014), built via recursive CTE
+  - `gold_dim_product` — 10,292 unique products (deduplicated on `product_id` — the raw data had inconsistent name/category text for some repeated IDs)
   - `gold_dim_customer` — 4,873 unique customers
-  - `gold_dim_geography` — 3,635 unique locations
+  - `gold_dim_geography` — 3,635 unique locations (deduplicated on city)
+
+**Business queries** (`sql/03_business_queries.sql`): 6 standalone queries covering yearly performance, top/bottom product profitability, region × segment breakdown, discount impact, and monthly trend — run directly against the Bronze table.
 
 ---
 
@@ -122,17 +141,18 @@ This project follows the **Medallion Architecture** pattern:
 
 **File:** `powerbi/retail_dashboard.pbix`
 
-**Data model:** Star schema connected directly to MySQL Gold layer — 1 fact table, 4 dimension tables, all one-to-many relationships. `dim_date` marked as official Date Table for time intelligence.
+**Data model:** Star schema connected directly to MySQL Gold layer — 1 fact table, 4 dimension tables, all one-to-many relationships. `dim_date` marked as the official Date Table for time intelligence.
 
-**DAX Measures (12 total):**
-Total Sales, Total Profit, Total Orders, Total Quantity, Profit Margin %, Avg Order Value, Sales LY, Sales vs LY %, YTD Sales, YTD Profit, Running Total Sales, Loss Orders
+**DAX Measures (12 total):** Total Sales, Total Profit, Total Orders, Total Quantity, Profit Margin %, Avg Order Value, Sales LY, Sales vs LY %, YTD Sales, YTD Profit, Running Total Sales, Loss Orders
 
 **Report Pages:**
-- **Executive Summary** — KPI cards, monthly sales vs prior year trend, sales by region, sales by segment, year slicer
-- **Product Analysis** — Top 10 products, category/sub-category matrix with conditional formatting, sales vs profit scatter chart, bookmark toggles
-- **Regional Analysis** — Profit by region, regional table, global sales map, drill-through from other pages
+- **Executive Summary** — KPI cards, monthly sales vs. prior year trend, sales by region, sales by segment, year slicer
+- **Product Analysis** — Top 10 products by profit, category/sub-category performance table with conditional formatting, sales-vs-profit scatter chart by sub-category, bookmark toggles (Category View / Product View / Default View)
+- **Regional Analysis** — Total profit by region, full regional performance table, global sales map, drill-through from other pages
 
-**Row-Level Security:** 4 roles (Central Manager, North Manager, South Manager, APAC Manager) filtering on `dim_geography[region]`
+**Row-Level Security:** 4 roles filtering on `dim_geography[region]` — Central Manager, North Manager, South Manager, and APAC Manager (currently scoped to the "North Asia" region specifically, not the full APAC group).
+
+---
 
 ## Dashboard Preview
 
@@ -157,8 +177,7 @@ Total Sales, Total Profit, Total Orders, Total Quantity, Profit Margin %, Avg Or
 
 ---
 
-
 ## Author
 
-**Rohit** — transitioning into Data / BI Analytics  
-[LinkedIn - https://linkedin.com/in/rohit-kute-8457a8190] · [GitHub - https://github.com/rohitkute2017]
+**Rohit** — transitioning into Data / BI Analytics
+[LinkedIn](https://linkedin.com/in/rohit-kute-8457a8190) · [GitHub](https://github.com/rohitkute2017)
